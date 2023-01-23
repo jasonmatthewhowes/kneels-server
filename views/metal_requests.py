@@ -1,33 +1,45 @@
-METALS = [
-    {
-      "id": 1,
-      "metal": "Sterling Silver",
-      "price": 12.42
-    },
-    {
-      "id": 2,
-      "metal": "14K Gold",
-      "price": 736.4
-    },
-    {
-      "id": 3,
-      "metal": "24K Gold",
-      "price": 1258.9
-    },
-    {
-      "id": 4,
-      "metal": "Platinum",
-      "price": 795.45
-    },
-    {
-      "id": 5,
-      "metal": "Palladium",
-      "price": 1241
-    }
-  ]
+import sqlite3
+import json
+from models import Metal
+
 
 def get_all_metals():
-    return METALS
+    # Open a connection to the database
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+
+        # Just use these. It's a Black Box.
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+
+        # Write the SQL query to get the information you want
+        db_cursor.execute("""
+        SELECT
+            a.id,
+            a.metal,
+            a.price
+        FROM Metals a
+        """)
+
+        # Initialize an empty list to hold all animal representations
+        metals = []
+
+        # Convert rows of data into a Python list
+        dataset = db_cursor.fetchall()
+
+        # Iterate list of data returned from database
+        for row in dataset:
+
+    # Create an animal instance from the current row
+            metal = Metal(row['id'], row['metal'], row['price'])
+
+
+    # Add the dictionary representation of the 
+            metals.append(metal.__dict__)
+
+    return metals
+
+
+
 
 # Function with a single parameter
 def get_single_metal(id):
@@ -78,10 +90,24 @@ def delete_metal(id):
         METALS.pop(metal_index)  
 
 def update_metal(id, new_metal):
-    # Iterate the list, but use enumerate() so that
-    # you can access the index value of each item.
-    for index, metal in enumerate(METALS):
-        if metal["id"] == id:
-            # Found the dictionary. Update the value.
-            METALS[index] = new_metal
-            break   
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        UPDATE Metals
+            SET
+                metal = ?,
+                price = ?
+        WHERE id = ?
+        """, (new_metal['metal'], new_metal['price'], id,))
+
+        # Were any rows affected?
+        # Did the client send an `id` that exists?
+        rows_affected = db_cursor.rowcount
+
+    if rows_affected == 0:
+        # Forces 404 response by main module
+        return False
+    else:
+        # Forces 204 response by main module
+        return True
